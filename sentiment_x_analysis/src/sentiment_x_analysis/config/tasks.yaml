@@ -1,0 +1,126 @@
+scrape_tweets_task:
+  description: >
+    Scrape tweets from the following X (Twitter) creators: 
+    @elonmusk, @naval, @chamath, @garyvee, @balajis, @cdixon, 
+    @aronvanammers, @aantonop, @VitalikButerin, @satyanadella
+    
+    For each user, collect:
+    - At least 5-15 recent tweets 
+    - Tweet text content and timestamp
+    - Engagement metrics (likes, retweets, replies, views if available)
+    - User profile information (followers, following, bio)
+    - Tweet metadata (hashtags, mentions, URLs)
+    
+    Handle rate limiting gracefully and ensure data quality.
+    Return data in JSON format organized by username.
+  expected_output: >
+    Structured JSON containing all collected tweet data organized by user,
+    with comprehensive metadata and engagement metrics for each tweet.
+  agent: x_data_collector
+
+analyze_sentiment_task:
+  description: >
+    Perform comprehensive sentiment analysis on the collected tweet data.
+    
+    For each user, analyze:
+    1. Overall sentiment distribution (positive, negative, neutral percentages)
+    2. Sentiment score for each tweet (-1 to +1 scale)
+    3. Key themes and topics discussed
+    4. Emotional tone patterns (joy, anger, fear, surprise, etc.)
+    5. Financial sentiment and market-related opinions
+    6. Extract financial tickers mentioned (stocks, crypto symbols)
+    7. Determine sentiment direction for each financial instrument
+    8. Identify trending topics and their associated sentiment
+    9. Time-based sentiment trends
+    
+    Pay special attention to:
+    - Financial market sentiment
+    - Technology and innovation sentiment  
+    - Cryptocurrency mentions and sentiment
+    - Investment advice or opinions
+  expected_output: >
+    Detailed sentiment analysis report in JSON format containing:
+    - Per-user sentiment metrics and scores
+    - Financial ticker mentions with sentiment direction
+    - Key themes and emotional patterns
+    - Time-based sentiment trends
+    - Market sentiment indicators
+  agent: sentiment_analyzer
+  context:
+    - scrape_tweets_task
+
+structure_output_task:
+  description: >
+    Organize and structure all analysis results into a comprehensive,
+    standardized format suitable for reporting and further analysis.
+    
+    Create structured output containing:
+    1. Executive Summary with key findings
+    2. User-by-user detailed analysis
+    3. Financial sentiment summary with ticker analysis
+    4. Cross-user comparison metrics
+    5. Trending topics and themes
+    6. Data quality metrics and collection statistics
+    7. Timestamp and methodology information
+    
+    Ensure data validation and consistency across all sections.
+    Prepare data for visualization and PDF report generation.
+  expected_output: >
+    Well-structured, validated JSON output containing:
+    - Executive summary section
+    - Detailed user analysis sections
+    - Financial sentiment aggregations
+    - Cross-user comparisons
+    - Quality metrics and metadata
+    Ready for report generation and visualization
+  agent: output_structurer
+  context:
+    - scrape_tweets_task
+    - analyze_sentiment_task
+
+generate_report_task:
+  description: >
+    Generate a comprehensive PDF report based on the structured analysis results.
+    
+    The report should include:
+    
+    1. Executive Summary (1-2 pages)
+       - Key findings and insights
+       - Overall sentiment trends
+       - Top financial sentiment indicators
+    
+    2. Individual Creator Analysis (1 page per creator)
+       - Sentiment distribution charts
+       - Key themes and topics
+       - Financial mentions and sentiment
+       - Engagement patterns
+    
+    3. Cross-Creator Comparison
+       - Comparative sentiment analysis
+       - Common themes and differences
+       - Market sentiment alignment
+    
+    4. Financial Sentiment Analysis
+       - Ticker mention frequency
+       - Sentiment direction by asset
+       - Market trend indicators
+    
+    5. Methodology and Data Quality
+       - Data collection summary
+       - Analysis methodology
+       - Quality metrics and limitations
+    
+    Use professional formatting with:
+    - Charts and visualizations
+    - Clear section headers
+    - Executive-friendly language
+    - Actionable insights and recommendations
+  expected_output: >
+    Professional PDF report (15-25 pages) with comprehensive analysis,
+    visualizations, and actionable insights suitable for business stakeholders.
+    The report should be saved as 'sentiment_analysis_report_[timestamp].pdf'.
+  agent: report_generator
+  context:
+    - scrape_tweets_task
+    - analyze_sentiment_task  
+    - structure_output_task
