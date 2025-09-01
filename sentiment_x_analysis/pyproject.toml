@@ -2,7 +2,7 @@
 name = "sentiment_x_analysis"
 version = "0.1.0"
 description = "sentiment-x-analysis using crewAI"
-authors = [{ name = "Your Name", email = "you@example.com" }]
+authors = [{ name = "Aakriti Dhar Dubey", email = "aakriti2144@gmail.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
     "crewai[tools]>=0.165.1,<1.0.0"
