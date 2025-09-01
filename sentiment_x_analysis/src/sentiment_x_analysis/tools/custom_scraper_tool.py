@@ -9,12 +9,16 @@ from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 import logging
 
-# Setup logging
+# Configure logging for monitoring and debugging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ----------------------------- #
+# Data Models for Structured Output
+# ----------------------------- #
+
 class TweetData(BaseModel):
-    """Data model for tweet information"""
+    """Schema for individual tweet data."""
     tweet_id: str
     username: str
     text: str
@@ -28,7 +32,7 @@ class TweetData(BaseModel):
     urls: List[str] = []
 
 class UserData(BaseModel):
-    """Data model for user information"""
+    """Schema for user profile data."""
     username: str
     display_name: str
     bio: str
@@ -38,12 +42,26 @@ class UserData(BaseModel):
     verified: bool = False
 
 class ScrapeXToolSchema(BaseModel):
+    """Input schema for ScrapeXTool."""
     usernames: List[str] = Field(..., description="List of usernames to scrape (without @)")
     tweet_count: int = Field(5, description="Number of tweets per user to collect")
 
+# ----------------------------- #
+# Scraper Tool Implementation
+# ----------------------------- #
+
 class ScrapeXTool(BaseTool):
-    """Enhanced Twitter/X scraper tool with multiple data collection methods"""
+    """
+    Enhanced Twitter/X scraper tool.
     
+    Features:
+    - Collects tweets and user profile data.
+    - Generates engagement metrics and metadata.
+    - Handles rate limiting via random delays.
+    - Provides structured output for downstream agents.
+    - Uses sample data generation (can be replaced with real scraping logic).
+    """
+
     name: str = "scrape_x_tool"
     description: str = (
         "Scrapes tweets and user data from X (Twitter) for specified usernames. "
@@ -54,36 +72,30 @@ class ScrapeXTool(BaseTool):
     args_schema: type[BaseModel] = ScrapeXToolSchema 
     
     def __init__(self):
+        """Initialize the scraper tool."""
         super().__init__()
         
+    # ----------------------------- #
+    # Utility Helpers
+    # ----------------------------- #
+
     def _random_delay(self, min_delay: float = 1.0, max_delay: float = 3.0):
-        """Add random delay to avoid rate limiting"""
+        """Sleep for a random interval to simulate network delay and avoid rate limits."""
         delay = random.uniform(min_delay, max_delay)
         time.sleep(delay)
     
+    # ----------------------------- #
+    # Sample Data Generators
+    # ----------------------------- #
+
     def _generate_sample_tweets(self, username: str, count: int = 50) -> List[TweetData]:
-        """Generate sample tweet data for demonstration purposes"""
+        """
+        Generate sample tweet data for a given user.
+        Used as a placeholder instead of real scraping.
+        """
         logger.info(f"Generating {count} sample tweets for @{username}")
         
-        # Sample tweet templates with different themes
-        # tweet_templates = [
-        #     "Just shipped a new feature! The future of {topic} is looking bright 🚀",
-        #     "Thinking about {topic}... the implications are huge for the market",
-        #     "Hot take: {topic} will revolutionize how we think about innovation",
-        #     "Built something cool with {topic} today. Open source coming soon!",
-        #     "The {topic} space is moving so fast. Exciting times ahead!",
-        #     "Love seeing the community grow around {topic}. Keep building! 💪",
-        #     "Market update: {topic} showing strong signals. Time to pay attention.",
-        #     "Been researching {topic} all week. Mind = blown 🤯",
-        #     "Quick thread on why {topic} matters more than people realize...",
-        #     "Bullish on {topic}. Here's why... (1/7)",
-        #     "The intersection of AI and {topic} is fascinating",
-        #     "Just read an incredible paper on {topic}. Link in bio.",
-        #     "Controversial opinion: {topic} is overhyped. Change my mind.",
-        #     "Building in public: our {topic} project hit 1M users! 🎉",
-        #     "Weekend project: exploring {topic}. Results are promising.",
-        # ]
-
+        # Simple tweet templates for demonstration
         tweet_templates = [
             "{topic} is the future",
             "Bullish on {topic}",
@@ -92,7 +104,7 @@ class ScrapeXTool(BaseTool):
             "Love {topic} community"
         ]
         
-        # Topic themes based on username
+        # Topic themes mapped to known usernames
         topic_themes = {
             'elonmusk': ['Tesla', 'SpaceX', 'AI', 'Mars', 'sustainable energy', 'neural interfaces'],
             'naval': ['startups', 'investing', 'philosophy', 'wealth creation', 'happiness'],
@@ -106,30 +118,33 @@ class ScrapeXTool(BaseTool):
             'satyanadella': ['Microsoft', 'cloud computing', 'AI', 'digital transformation', 'leadership']
         }
         
+        # Default topics if username not in mapping
         topics = topic_themes.get(username, ['technology', 'innovation', 'business', 'future', 'AI'])
         tweets = []
         
         for i in range(count):
+            # Pick random template + topic
             template = random.choice(tweet_templates)
             topic = random.choice(topics)
             text = template.format(topic=topic)
             
-            # Generate realistic engagement metrics
+            # Simulate engagement metrics
             base_engagement = random.randint(100, 10000)
             likes = base_engagement + random.randint(0, base_engagement * 2)
             retweets = int(likes * random.uniform(0.1, 0.3))
             replies = int(likes * random.uniform(0.05, 0.15))
             views = likes * random.randint(10, 50)
             
-            # Generate timestamp (last 30 days)
+            # Generate a pseudo-random timestamp (within last 30 days)
             days_ago = random.randint(0, 30)
             hours_ago = random.randint(0, 23)
             timestamp = datetime.now() - timedelta(days=days_ago, hours=hours_ago)
             
-            # Extract hashtags and mentions from text
+            # Extract hashtags/mentions (if present)
             hashtags = [word[1:] for word in text.split() if word.startswith('#')]
             mentions = [word[1:] for word in text.split() if word.startswith('@')]
             
+            # Construct tweet object
             tweet = TweetData(
                 tweet_id=f"{username}_{i}_{int(timestamp.timestamp())}",
                 username=username,
@@ -148,7 +163,10 @@ class ScrapeXTool(BaseTool):
         return tweets
     
     def _generate_sample_user_data(self, username: str) -> UserData:
-        """Generate sample user data for demonstration purposes"""
+        """
+        Generate sample user profile data.
+        If username not predefined, generate random profile stats.
+        """
         user_profiles = {
             'elonmusk': {
                 'display_name': 'Elon Musk',
@@ -192,6 +210,7 @@ class ScrapeXTool(BaseTool):
             }
         }
         
+        # Fallback: generate random profile if not in mapping
         profile = user_profiles.get(username, {
             'display_name': username.title(),
             'bio': f'Content creator and thought leader @{username}',
@@ -203,14 +222,32 @@ class ScrapeXTool(BaseTool):
         
         return UserData(username=username, **profile)
     
+    # ----------------------------- #
+    # Main Execution
+    # ----------------------------- #
+
     def _run(self, usernames: str, tweet_count: int = 5) -> str:
-        """Main execution method for the tool"""
+        """
+        Main entrypoint for tool execution.
+        
+        Args:
+            usernames (str | list): Usernames to scrape.
+            tweet_count (int): Number of tweets per user.
+        
+        Returns:
+            str: JSON string with scraping results and metadata.
+        """
+        # Initialize session (placeholder for real HTTP requests)
         session = requests.Session()
         session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    })
+            'User-Agent': (
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                'Chrome/91.0.4472.124 Safari/537.36'
+            )
+        })
         try:
-            # Parse usernames (can be comma-separated string or list)
+            # Normalize input: allow comma-separated str or list
             if isinstance(usernames, str):
                 username_list = [u.strip().replace('@', '') for u in usernames.split(',')]
             else:
@@ -218,13 +255,14 @@ class ScrapeXTool(BaseTool):
             
             logger.info(f"Starting scrape for users: {username_list}")
             
+            # Initialize result container
             results = {
                 'scrape_metadata': {
                     'timestamp': datetime.now().isoformat(),
                     'usernames_requested': username_list,
                     'tweets_per_user': tweet_count,
                     'total_users': len(username_list),
-                    'scrape_method': 'sample_data_generator'  # In real implementation, this would be the actual method used
+                    'scrape_method': 'sample_data_generator'
                 },
                 'users': {},
                 'summary': {}
@@ -233,37 +271,40 @@ class ScrapeXTool(BaseTool):
             total_tweets = 0
             successful_scrapes = 0
             
+            # Process each username
             for username in username_list:
                 try:
                     logger.info(f"Processing user: @{username}")
                     
-                    # Generate user data
+                    # Generate synthetic user + tweet data
                     user_data = self._generate_sample_user_data(username)
-                    
-                    # Generate tweets
                     tweets = self._generate_sample_tweets(username, tweet_count)
                     
-                    # Store results
+                    # Store structured results
                     results['users'][username] = {
-                    'user_info': {
-                        'username': user_data.username,
-                        'display_name': user_data.display_name,
-                        'followers_count': user_data.followers_count
-                    },
-                    'tweets': [{'text': tweet.text[:50], 'likes': tweet.likes} for tweet in tweets[:10]],  # Truncate text
-                    'tweet_count':min(len(tweets), 10),
-                    'scrape_success': True
+                        'user_info': {
+                            'username': user_data.username,
+                            'display_name': user_data.display_name,
+                            'followers_count': user_data.followers_count
+                        },
+                        'tweets': [
+                            {'text': tweet.text[:50], 'likes': tweet.likes}
+                            for tweet in tweets[:10]  # Truncate to 10 tweets
+                        ],
+                        'tweet_count': min(len(tweets), 10),
+                        'scrape_success': True
                     }
                     
                     total_tweets += len(tweets)
                     successful_scrapes += 1
                     
-                    # Add delay between users
+                    # Sleep between users to mimic network delay
                     self._random_delay(1, 3)
                     
                     logger.info(f"Successfully scraped {len(tweets)} tweets for @{username}")
                     
                 except Exception as e:
+                    # Handle scraping failure gracefully
                     logger.error(f"Error scraping @{username}: {str(e)}")
                     results['users'][username] = {
                         'user_info': None,
@@ -273,20 +314,24 @@ class ScrapeXTool(BaseTool):
                         'error': str(e)
                     }
             
-            # Add summary
+            # Add overall summary
             results['summary'] = {
                 'total_tweets_collected': total_tweets,
                 'successful_scrapes': successful_scrapes,
                 'failed_scrapes': len(username_list) - successful_scrapes,
                 'success_rate': successful_scrapes / len(username_list) if username_list else 0,
-                'average_tweets_per_user': total_tweets / successful_scrapes if successful_scrapes > 0 else 0
+                'average_tweets_per_user': (
+                    total_tweets / successful_scrapes if successful_scrapes > 0 else 0
+                )
             }
             
             logger.info(f"Scraping completed. Total tweets: {total_tweets}")
             
+            # Return results as JSON
             return json.dumps(results, indent=2, default=str)
             
         except Exception as e:
+            # Global error handling
             error_msg = f"Error in ScrapeXTool execution: {str(e)}"
             logger.error(error_msg)
             return json.dumps({
@@ -295,5 +340,5 @@ class ScrapeXTool(BaseTool):
                 'success': False
             }, indent=2)
 
-# For backwards compatibility
+# Alias for backwards compatibility
 TwitterScraperTool = ScrapeXTool
